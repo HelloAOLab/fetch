@@ -1,6 +1,7 @@
 
 import {mkdirSync, readFileSync, rmSync} from 'fs'
 import {dirname, join} from 'path'
+import { fileURLToPath } from 'url';
 
 
 export async function request<T>(url:string, type?:'json'):Promise<T>
@@ -56,5 +57,5 @@ export function read_json<T>(path:string):T{
 
 // Absolute path to package's root dir
 // NOTE Since dealing with a URL, separator is always '/' and 'file:/' is prepended
-export const PKG_PATH =
-    dirname(dirname(dirname(join('/', ...import.meta.url.slice('file:/'.length).split('/')))))
+export const PKG_PATH = 
+    dirname(dirname(dirname(fileURLToPath(import.meta.url))))
