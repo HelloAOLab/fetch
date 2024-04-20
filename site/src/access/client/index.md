@@ -16,9 +16,29 @@ You can also use this client to access your own self-hosted collection if you ch
 
 You can use this client both client-side and server-side.
 
-__Browsers:__ ES2015/ES6+
-<br>
-__Node:__ 18+
+### Browsers (ES2019+)
+
+It is recommended to use a bundler (like Vite or Webpack) and simply `import {BibleClient} from '@gracious.tech/fetch-client'`. This will use the published ESM form which supports tree-shaking.
+
+If you can't use a bundler for some reason, you can also:
+
+ * Deploy `dist/bundled.mjs` and import it in a `<script type='module'>`
+ * Deploy `dist/bundled.iife.js` and include it via a regular `<script src='...'>`
+    * It will create a `fetch_client` global variable, so you can access `fetch_client.BibleClient`
+
+### Node (18+)
+
+It is recommended to use ESM import/export syntax by setting `"type": "module"` in your `package.json`. You can then:
+
+`import {BibleClient} from '@gracious.tech/fetch-client'`
+
+If you need to still use the old `require()` syntax for other modules, you can still use the ESM form via a dynamic import:
+
+`import('@gracious.tech/fetch-client').then(({BibleClient}) => ...)`
+
+or you can require the bundled CJS form with:
+
+`const {BibleClient} = require('@gracious.tech/fetch-client')`
 
 
 ## Usage
@@ -66,7 +86,7 @@ console.log(book.get_chapter(1))
 ## Styles
 The client includes a functional stylesheet, meaning styles that are minimalistic and critical for correct display. If you don't include this in your project then, for example, footnotes etc. are going to appear inline and undistinguishable from actual scripture.
 
-If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/dist/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
+If you use a tool like Webpack or Vite then you'll simply need to `import '@gracious.tech/fetch-client/client.css'` in a Javascript module, or you could alternatively deploy it with your code and use a `<link>` element to include it.
 
 All styles are namespaced under the class `fetch-bible` and all subclasses are prefixed with `fb-` so that it won't affect your existing styles and they also are unlikely to affect fetch(bible) HTML. So you must embed fetch(bible) HTML under a container element with the class `fetch-bible`.
 

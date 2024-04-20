@@ -1,18 +1,14 @@
 
 node_modules/
+dist/
 
-/app/dist/
 /app/.deployments/
 
-/client/dist/
-
 /collection/
+/collection_alt/
 
 /collector/bmc/
-/collector/dist/
 
-/site/dist/
 /site/src/access/client/api/
-/site/src/public/client.*
-/site/src/.comp/client.min.esm.js
 /site/.deployments/
+/site/.vitepress/cache/

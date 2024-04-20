@@ -25,13 +25,15 @@ export async function generic_update_sources(sources:Record<string, TranslationS
 async function _update_source(id:string, meta:TranslationSourceMeta):Promise<void>{
 
     // Paths
-    const src_dir = join('sources', id)
+    const src_dir = join('sources', 'bibles', id)
     const zip_path = join(src_dir, 'source.zip')
     const format_dir = join(src_dir, meta.source.format)
 
     // Download zip
-    const zip = await request(meta.source.url, 'arrayBuffer')
-    writeFileSync(zip_path, Buffer.from(zip))
+    if (meta.source.service !== 'manual'){
+        const zip = await request(meta.source.url!, 'arrayBuffer')
+        writeFileSync(zip_path, Buffer.from(zip))
+    }
 
     // Empty format dir
     clean_dir(format_dir)

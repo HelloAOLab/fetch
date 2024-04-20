@@ -1,7 +1,8 @@
 
 import {reactive, computed, watch} from 'vue'
 
-import {SyncedVerses} from '@/client/esm/book'
+import type {IndividualVerse} from '@gracious.tech/fetch-client/dist/esm/book'
+import {BookCrossref} from '@gracious.tech/fetch-client/dist/esm/crossref'
 
 
 // LOCAL STORAGE
@@ -92,13 +93,16 @@ export const state = reactive({
     // State
     offline: false,
     content: '',
-    content_verses: [] as SyncedVerses,
+    content_verses: [] as IndividualVerse<string>[][],
     show_select_chapter: false,
     show_trans_dialog: false,
     show_style_dialog: false,
     show_about_dialog: false,
     wide: wide_query.matches,
     search: null as null|string,
+    study: null as null|[string, number, number],
+    crossref: null as BookCrossref|null,
+    notes: null as Record<string, Record<string, string>>|null,
 })
 
 
@@ -126,14 +130,27 @@ export const density = computed(() => {
     return state.wide ? 'default' : 'compact'
 })
 
+// Max-width for dialogs, so they don't look silly taking up whole screen
+export const dialog_max_width = computed(() => {
+    return state.wide ? '800px' : ''
+})
+
 
 // METHODS
 
+
 // Change chapter helper
-export const change_chapter = (num:number) => {
-    state.chapter = num
-    state.verse = 1
-    state.target = [num, 1]
+export const change_chapter = (chapter:number, verse=1) => {
+    state.chapter = chapter
+    state.verse = verse
+    state.target = [chapter, verse]
+}
+
+
+// Change passage helper
+export const change_passage = (book:string, chapter=1, verse=1) => {
+    state.book = book
+    change_chapter(chapter, verse)
 }
 
 

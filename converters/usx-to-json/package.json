@@ -1,0 +1,29 @@
+{
+  "name": "usx-to-json",
+  "version": "0.0.0",
+  "description": "Convert USX Bible format to JSON with verse contents in either HTML or plain text.",
+  "type": "module",
+  "exports": {
+    "import": "./dist/esm/index.js",
+    "require": "./dist/bundled.cjs"
+  },
+  "types": "./dist/esm/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gracious-tech/fetch.git"
+  },
+  "keywords": [
+    "bible",
+    "usx",
+    "html"
+  ],
+  "author": "Gracious Tech",
+  "license": "MIT-0",
+  "bugs": {
+    "url": "https://github.com/gracious-tech/fetch/issues"
+  },
+  "homepage": "https://github.com/gracious-tech/fetch/tree/master/converters/usx-to-json"
+}

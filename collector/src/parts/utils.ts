@@ -1,8 +1,37 @@
 
-import {mkdirSync, readFileSync, rmSync} from 'fs'
+import {Dirent, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync} from 'fs'
 import {dirname, join} from 'path'
 import { fileURLToPath } from 'url';
 
+/**
+ * Files to ignore when reading a directory
+ */
+const IGNORE_FILES = ['.DS_Store']
+
+/**
+ * An interface for directory entries
+ */
+export interface DirectoryEntry {
+    // Is it a directory
+    isDirectory: boolean,
+    // The name of the file
+    name: string,
+    // If it is a file, the size of the file.
+    fileSize: number|undefined,
+    // If it is a directory, the number of files in the directory.
+    dirSize: number|undefined,
+}
+
+/**
+ * An interface containing information about the first parent directory with
+ * content.
+ */
+export interface FirstFullParent {
+    // The first parent with content
+    directory: string,
+    // All the directories up the chain that were empty
+    emptyDirectories: string[],
+}
 
 export async function request<T>(url:string, type?:'json'):Promise<T>
 export async function request(url:string, type:'text'):Promise<string>
@@ -42,10 +71,117 @@ export async function concurrent(tasks:(()=>Promise<unknown>)[], limit=10):Promi
 }
 
 
+// Make sure a dir exists and don't throw if it does already
+export function mkdir_exist(path:string):void{
+    if (existsSync(path)){
+        return
+    }
+    mkdirSync(path, {recursive: true})
+}
+
+
 export function clean_dir(path:string):void{
     // Ensure dir exists and is empty
     rmSync(path, {force: true, recursive: true})
     mkdirSync(path, {recursive: true})
+}
+
+
+/**
+ * Read the directory and pass back the names of the entries. This is a wrapper to ignore
+ * specific files.
+ *
+ * @param path The path to read
+ *
+ * @returns The entry names
+ */
+export function read_dir(path:string):string[] {
+    return readdirSync(path).filter(item => !IGNORE_FILES.includes(item))
+}
+
+
+/**
+ * Get directory entries for a given path
+ *
+ * @param path The path to read
+ *
+ * @returns The directory entries
+ */
+export function get_dir_entries(path:string):DirectoryEntry[] {
+    return readdirSync(path, {withFileTypes: true})
+        .filter((item: Dirent) => !IGNORE_FILES.includes(item.name))
+        .map((item: Dirent) => {
+            const name = item.name
+            const isDirectory = item.isDirectory()
+            const fileSize = (isDirectory) ? undefined : statSync(join(path, name)).size
+            const dirSize = (!isDirectory) ? undefined : readdirSync(join(path, name)).length
+            const entry: DirectoryEntry = {
+                isDirectory,
+                name,
+                fileSize,
+                dirSize,
+            }
+            return entry
+        })
+}
+
+/**
+ * Find the first parent directory that has content and all it's empty children
+ *
+ * @param directory The directory to start on
+ *
+ * @returns The parent that has content, and all the empty children
+ */
+export function find_first_full_parent_dir(directory: string): FirstFullParent {
+    const result: FirstFullParent = {
+        directory: '',
+        emptyDirectories: [],
+    }
+    let parent = directory
+    // Loop until we get to the top directory
+    while (parent !== '.') {
+        const total = read_files_in_dir(parent).length
+        if (total === 0) {
+            result.emptyDirectories.push(parent)
+        } else {
+            // If a directory has files, then it's parents will also have it
+            result.directory = parent
+            break
+        }
+        parent = dirname(parent)
+    }
+    return result
+}
+
+/**
+ * Read only the files in a directory
+ *
+ * @param directory The path of the directory
+ *
+ * @returns Only the files in the directory
+ */
+export function read_files_in_dir(directory:string): string[] {
+    return readdirSync(directory, {withFileTypes: true})
+        .filter((entity: Dirent) => !IGNORE_FILES.includes(entity.name))
+        .filter((entity: Dirent) => entity.isFile())
+        .map((entity: Dirent) => entity.name)
+}
+
+
+// Get paths for all the files in a dir and any child dirs (recursive)
+export function read_files_deep(directory:string):string[]{
+    const files:string[] = []
+    for (const entry of readdirSync(directory, {withFileTypes: true})){
+        const entry_path = join(directory, entry.name)
+        if (entry.isDirectory()){
+            files.push(...read_files_deep(entry_path))
+            continue
+        } else if (!entry.isFile() || IGNORE_FILES.includes(entry.name)){
+            continue
+        }
+        files.push(entry_path)
+    }
+    return files
 }
 
 
@@ -56,6 +192,21 @@ export function read_json<T>(path:string):T{
 
 
 // Absolute path to package's root dir
-// NOTE Since dealing with a URL, separator is always '/' and 'file:/' is prepended
 export const PKG_PATH = 
     dirname(dirname(dirname(fileURLToPath(import.meta.url))))
+
+export function type_from_path(path:string){
+    // Determine content type from path (supporting only types relevant to collections)
+    if (path.endsWith('.usx')){
+        return 'application/xml'
+    } else if (path.endsWith('.usfm')){
+        return 'text/plain'
+    } else if (path.endsWith('.html')){
+        return 'text/html'
+    } else if (path.endsWith('.txt')){
+        return 'text/plain'
+    } else if (path.endsWith('.json')){
+        return 'application/json'
+    }
+    return 'application/octet-stream'
+}

@@ -92,17 +92,23 @@ export interface MetaBookSection {
 // DIST
 
 
-export interface DistTranslation {
+// Common to bibles/notes/etc
+export interface DistManifestItem {
     language:string
     name:MetaTranslationName
     year:number
     direction:'ltr'|'rtl'
+    copyright:MetaCopyright
+}
+
+
+export interface DistTranslation extends DistManifestItem {
     audio:unknown[]
     video:unknown[]
-    copyright:MetaCopyright
     recommended:boolean|null
     books:Record<string, string>  // Books that are available and their names
-    last_verse:Record<string, number[]>|null  // Null if same as most common system
+    // {book:{c:{v:[c, v]}}}
+    missing_verses:Record<string, Record<number, Record<number, [number, number]>>>
 }
 
 
@@ -121,3 +127,42 @@ export interface DistTranslationExtra {
     sections:Record<string, MetaBookSection[]>
     chapter_headings:Record<string, Record<number, string>>
 }
+
+
+export interface DistNotes extends DistManifestItem {
+    books:string[]
+}
+
+
+export interface DistNotesManifest {
+    notes:Record<string, DistNotes>
+}
+
+
+// FORMATS
+
+
+export interface BibleJsonHtml {
+    contents: string[][][]
+}
+
+export interface TxtHeading {
+    type:'heading'
+    contents:string
+    level:1|2|3
+}
+
+export interface TxtNote {
+    type:'note'
+    contents:string
+}
+
+export type TxtContent = string|TxtHeading|TxtNote
+
+export interface BibleJsonTxt {
+    contents: TxtContent[][][]
+}
+
+export type CrossrefSingle = [string, number, number]
+export type CrossrefRange = [...CrossrefSingle, number, number]
+export type CrossrefData = Record<string, Record<string, (CrossrefSingle|CrossrefRange)[]>>

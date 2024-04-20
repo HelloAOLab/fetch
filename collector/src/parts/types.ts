@@ -20,30 +20,35 @@ export interface CollectionConfig {
 
 
 export interface TranslationSource {
-    service:'ebible'|'dbl'|'door43'
-    id:string
+    service:'ebible'|'dbl'|'door43'|'manual'
     format:'usfm'|'usx1-2'|'usx3+'
-    url:string
     updated:string  // yyyy-mm-dd
+    id:string|null
+    url:string|null
 }
 
 
 export interface BookExtracts {
     name:string|null
     sections:MetaBookSection[]
-    last_verse:number[]
+    missing_verses:Record<number, Record<number, [number, number]|null>>
     chapter_headings:Record<number, string|null>  // Null if a section provides a better heading
 }
 
 
-export interface TranslationSourceMeta {
-    language:string
+export interface CommonSourceMeta {
     name:MetaTranslationName
     year:number|null
+    version:string
+    language:string
     direction:'ltr'|'rtl'
+    copyright:MetaCopyright
+}
+
+
+export interface TranslationSourceMeta extends CommonSourceMeta {
     audio:unknown[]
     video:unknown[]
-    copyright:MetaCopyright
     // Recommended is used to further customise the exclude_obsolete filter and default translation
     // They are usually based on year, but this can manually account for other factors
     // Set to false to consider even a modern translation obsolete
@@ -51,4 +56,9 @@ export interface TranslationSourceMeta {
     recommended:boolean|null  // Only one per language should be true
     source:TranslationSource
     reviewed:boolean
+}
+
+
+export interface NotesSourceMeta extends CommonSourceMeta {
+    // pass
 }

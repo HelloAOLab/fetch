@@ -1,9 +1,9 @@
 
-import {BibleBookHtml, BibleBookUsx} from './book'
-import {filter_licenses} from './licenses'
-import {DistManifest} from './shared_types'
-import {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
-import {deep_copy, fuzzy_search, request} from './utils'
+import {BibleBookHtml, BibleBookUsx, BibleBookUsfm, BibleBookTxt} from './book.js'
+import {filter_licenses} from './licenses.js'
+import {deep_copy, fuzzy_search, request} from './utils.js'
+import type {DistManifest} from './shared_types'
+import type {UsageOptions, UsageConfig, RuntimeManifest, RuntimeLicense} from './types'
 
 
 // No browser types since may be running in Node, so define as possibly existing
@@ -44,6 +44,7 @@ export interface GetTranslationsItem {
     // NOTE Keeps flat structure for better dev experience
     id:string
     language:string
+    direction:'ltr'|'rtl',
     year:number
     name_local:string
     name_english:string
@@ -62,8 +63,9 @@ export interface GetBooksOptions {
 
 export interface GetBooksItem {
     id:string
-    local:string  // WARN May be empty string
-    english:string
+    name:string
+    name_local:string  // WARN May be empty string
+    name_english:string
     available:boolean
 }
 
@@ -103,6 +105,7 @@ export class BibleCollection {
             book_names_english: manifests[0][1].book_names_english,
             books_ordered: manifests[0][1].books_ordered,
             licenses: manifests[0][1].licenses,  // Still useful even if resolved within transl.s
+            last_verse: manifests[0][1].last_verse,
             languages: {},
             language2to3: {},
             translations: {},
@@ -146,7 +149,6 @@ export class BibleCollection {
                 // Add the translation to the combined collection
                 this._manifest.translations[trans] = {
                     ...trans_data,
-                    last_verse: trans_data.last_verse ?? manifest.last_verse,
                     copyright: {
                         ...trans_data.copyright,
                         licenses,
@@ -288,6 +290,7 @@ export class BibleCollection {
             return {
                 id,
                 language: trans.language,
+                direction: trans.direction,
                 year: trans.year,
                 name_local: trans.name.local,
                 name_english: trans.name.english,
@@ -390,8 +393,9 @@ export class BibleCollection {
             .map(id => {
                 return {
                     id,
-                    local: available[id] ?? '',
-                    english: this._manifest.book_names_english[id]!,
+                    name: available[id] ?? this._manifest.book_names_english[id]!,
+                    name_local: available[id] ?? '',
+                    name_english: this._manifest.book_names_english[id]!,
                     available: id in available,
                 }
             })
@@ -401,17 +405,18 @@ export class BibleCollection {
             return Object.fromEntries(list.map(item => [item.id, item]))
         }
 
-        // Optionally sort by local instead of traditional order
+        // Optionally sort by name instead of traditional order
         if (sort_by_name){
-            list.sort((a, b) => a.local.localeCompare(b.local))
+            list.sort((a, b) => a.name.localeCompare(b.name))
         }
 
         return list
     }
 
     // Get the URL for a book's content (useful for caching and manual retrieval)
-    get_book_url(translation:string, book:string, format:'html'|'usx'='html'){
-        return `${this._endpoints[translation]!}bibles/${translation}/${format}/${book}.${format}`
+    get_book_url(translation:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'){
+        const ext = ['html', 'txt'].includes(format) ? 'json' : format
+        return `${this._endpoints[translation]!}bibles/${translation}/${format}/${book}.${ext}`
     }
 
     // Get book ids that are available/missing for a translation for each testament
@@ -440,32 +445,35 @@ export class BibleCollection {
     }
 
     // Get chapter numbers for a book
-    get_chapters(translation:string, book:string):number[]{
-        this._ensure_book_exists(translation, book)
-        const last_verse = this._manifest.translations[translation]!.last_verse
+    get_chapters(book:string):number[]{
+        const last_verse = this._manifest.last_verse
         // NOTE Need to +1 since chapter numbers are derived from place in last_verse array
         return [...Array(last_verse[book]!.length).keys()].map(i => i + 1)
     }
 
     // Get verse numbers for a chapter
-    get_verses(translation:string, book:string, chapter:number):number[]{
-        this._ensure_book_exists(translation, book)
-        const last_verse = this._manifest.translations[translation]!.last_verse
+    get_verses(book:string, chapter:number):number[]{
+        const last_verse = this._manifest.last_verse
         // WARN Position of each chapter is chapter-1 due to starting from 0
         return [...Array(last_verse[book]![chapter-1]).keys()].map(i => i + 1)
     }
 
-    // Make request for the HTML text for a book of a translation (returns object for accessing it)
+    // Make request for the text for a book of a translation (returns object for accessing it)
     async fetch_book(translation:string, book:string, format?:'html'):Promise<BibleBookHtml>
     async fetch_book(translation:string, book:string, format:'usx'):Promise<BibleBookUsx>
-    async fetch_book(translation:string, book:string, format:'html'|'usx'='html'):
-            Promise<BibleBookHtml|BibleBookUsx>{
+    async fetch_book(translation:string, book:string, format:'usfm'):Promise<BibleBookUsfm>
+    async fetch_book(translation:string, book:string, format:'txt'):Promise<BibleBookTxt>
+    async fetch_book(translation:string, book:string, format:'html'|'usx'|'usfm'|'txt'='html'):
+            Promise<BibleBookHtml|BibleBookUsx|BibleBookUsfm|BibleBookTxt>{
         this._ensure_book_exists(translation, book)
         const contents = await request(this.get_book_url(translation, book, format))
-        if (format === 'html'){
-            return new BibleBookHtml(this._manifest.translations[translation]!, contents)
-        }
-        return new BibleBookUsx(this._manifest.translations[translation]!, contents)
+        const format_class = {
+            html: BibleBookHtml,
+            usx: BibleBookUsx,
+            usfm: BibleBookUsfm,
+            txt: BibleBookTxt,
+        }[format]
+        return new format_class(this._manifest.translations[translation]!, contents)
     }
 
     // TODO async fetch_audio(){}

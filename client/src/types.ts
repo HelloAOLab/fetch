@@ -1,8 +1,7 @@
 
 // General types specific to the client
 
-import {MetaCopyright, DistManifest, DistTranslation, MetaRestrictions}
-    from './shared_types'
+import type {MetaCopyright, DistManifest, DistTranslation, MetaRestrictions} from './shared_types'
 
 
 export interface UsageConfig {
@@ -25,11 +24,10 @@ export interface RuntimeLicense {
     url:string
 }
 
-export type RuntimeTranslation = Omit<DistTranslation, 'last_verse'|'copyright'> & {
-    last_verse:Record<string, number[]>  // Last verse not null when resolved
+export type RuntimeTranslation = Omit<DistTranslation, 'copyright'> & {
     copyright:Omit<MetaCopyright, 'licenses'> & {licenses:RuntimeLicense[]}
 }
 
-export type RuntimeManifest = Omit<DistManifest, 'last_verse'|'translations'> & {
+export type RuntimeManifest = Omit<DistManifest, 'translations'> & {
     translations:Record<string, RuntimeTranslation>
 }

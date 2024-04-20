@@ -16,8 +16,12 @@ export default defineConfig({
         ['meta', {property: 'og:image:height', content: '630'}],
     ],
     vite: {
+        publicDir: '_public',
         resolve: {
             alias: [{find: '@', replacement: path.resolve(__dirname, '../src')}],
+        },
+        build: {
+            target: 'es2022',  // Support top-level await, site only for developers anyway
         },
     },
     themeConfig: {
